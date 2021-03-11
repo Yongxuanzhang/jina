@@ -2,6 +2,7 @@ __copyright__ = "Copyright (c) 2020 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
 import time
+from typing import Optional, Tuple
 
 from google.protobuf.json_format import MessageToJson
 
@@ -157,4 +158,8 @@ class RouteDriver(ControlReqDriver):
 
 
 class ForwardDriver(RouteDriver):
+    """Alias to :class:`RouteDriver`"""
+
+
+class ReduceDriver(RouteDriver):
     """Alias to :class:`RouteDriver`"""

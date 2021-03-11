@@ -198,13 +198,14 @@ class CompoundExecutor(BaseExecutor):
             return any(super().__call__(*args, **kwargs))
 
     def __init__(
-        self, routes: Dict[str, Dict] = None, resolve_all: bool = True, *args, **kwargs
+            self, routes: Dict[str, Dict] = None, resolve_all: bool = True, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._components = None  # type: Optional[List[AnyExecutor]]
         self._routes = routes
         self._is_updated = False  #: the internal update state of this compound executor
         self.resolve_all = resolve_all
+        self.next_version = False
 
     @property
     def is_trained(self) -> bool:
@@ -223,8 +224,8 @@ class CompoundExecutor(BaseExecutor):
         :return: only true if all components are updated or if the compound is updated
         """
         return (
-            self.components and any(c.is_updated for c in self.components)
-        ) or self._is_updated
+                       self.components and any(c.is_updated for c in self.components)
+               ) or self._is_updated
 
     @is_updated.setter
     def is_updated(self, val: bool) -> None:
@@ -297,7 +298,7 @@ class CompoundExecutor(BaseExecutor):
 
     @staticmethod
     def get_component_workspace_from_compound_workspace(
-        compound_workspace: str, compound_name: str, pea_id: int
+            compound_workspace: str, compound_name: str, pea_id: int
     ) -> str:
         """
         Get the name of workspace.
@@ -334,7 +335,7 @@ class CompoundExecutor(BaseExecutor):
                     self.add_route(f, kk, vv)
 
     def add_route(
-        self, fn_name: str, comp_name: str, comp_fn_name: str, is_stored: bool = False
+            self, fn_name: str, comp_name: str, comp_fn_name: str, is_stored: bool = False
     ) -> None:
         """Create a new function for this executor which refers to the component's function
 
@@ -350,9 +351,9 @@ class CompoundExecutor(BaseExecutor):
         """
         for c in self.components:
             if (
-                c.name == comp_name
-                and hasattr(c, comp_fn_name)
-                and callable(getattr(c, comp_fn_name))
+                    c.name == comp_name
+                    and hasattr(c, comp_fn_name)
+                    and callable(getattr(c, comp_fn_name))
             ):
                 setattr(self, fn_name, getattr(c, comp_fn_name))
                 if is_stored:
@@ -426,3 +427,20 @@ class CompoundExecutor(BaseExecutor):
 
     def __iter__(self):
         return self.components.__iter__()
+
+    async def reload(self):
+        futures = []
+        for c in self.components:
+            # simulate time.sleep in the test
+            future = c.reload(callback=self.reload_callback)
+            futures.append(future)
+        #wait for futures
+        self.next_version = True
+
+    def __call__(self, *args, **kwargs):
+        if self.next_version:
+            # rewrite to futures
+            for c in self.components:
+                c.switch()
+            self.next_version = False
+        super.__call__(*args, **kwargs)

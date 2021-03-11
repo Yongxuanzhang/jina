@@ -1,0 +1,29 @@
+jtype: CompoundIndexer
+components:
+  - jtype: NumpyIndexer
+    with:
+      index_filename: vec.gz
+      metric: euclidean
+    metas:
+      name: vecidx  # a customized name
+  - jtype: BinaryPbIndexer
+    with:
+      index_filename: chunk.gz
+    metas:
+      name: chunkidx
+metas:
+  name: compound_indexer
+  workspace: $HW_WORKDIR
+on:
+  SearchRequest:
+    - !VectorSearchDriver
+      with:
+        executor: BaseVectorIndexer
+    - !ExcludeQL
+      with:
+        fields:
+          - embedding
+  ControlRequest:
+    - !ReloadControlReqDriver
+      with:
+        executor: compound_indexer

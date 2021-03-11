@@ -152,6 +152,7 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
         'encode',
         'add',
         'query',
+        'reload',
         'craft',
         'segment',
         'score',
@@ -594,6 +595,7 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
 
         # noqa: DAR102
         """
+        print('########', self._drivers)
         if req_type in self._drivers:
             for d in self._drivers[req_type]:
                 if d.attached:

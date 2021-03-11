@@ -536,6 +536,25 @@ class CRUDFlowMixin:
         """
         self._get_client(**kwargs).delete(ids, on_done, on_error, on_always, **kwargs)
 
+
+    def reload(
+        self,
+        path: str,
+        on_done: CallbackFnType = None,
+        on_error: CallbackFnType = None,
+        on_always: CallbackFnType = None,
+        **kwargs,
+    ):
+        """Do deletion on the current Flow
+        # TODO to be done
+        :param ids: An iterator of bytes. If not given, then you have to specify it in **kwargs**.
+        :param on_done: the function to be called when the :class:`Request` object is resolved.
+        :param on_error: the function to be called when the :class:`Request` object is rejected.
+        :param on_always: the function to be called when the :class:`Request` object is  is either resolved or rejected.
+        :param kwargs: accepts all keyword arguments of `jina client` CLI
+        """
+        self._get_client(**kwargs).reload(path, on_done, on_error, on_always, **kwargs)
+
     @deprecated_alias(
         input_fn=('inputs', 0),
         buffer=('inputs', 1),

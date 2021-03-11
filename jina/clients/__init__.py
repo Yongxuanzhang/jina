@@ -167,6 +167,28 @@ class Client(BaseClient):
             self._get_results, inputs, on_done, on_error, on_always, **kwargs
         )
 
+    def reload(
+        self,
+        path: str,
+        on_done: CallbackFnType = None,
+        on_error: CallbackFnType = None,
+        on_always: CallbackFnType = None,
+        **kwargs
+    ) -> None:
+        """Issue 'update' request to the Flow.
+        TODO to be done
+        :param inputs: input data which can be an Iterable, a function which returns an Iterable, or a single Document id.
+        :param on_done: the function to be called when the :class:`Request` object is resolved.
+        :param on_error: the function to be called when the :class:`Request` object is rejected.
+        :param on_always: the function to be called when the :class:`Request` object is  is either resolved or rejected.
+        :param kwargs: additional parameters
+        :return: None
+        """
+        self.mode = RequestType.RELOAD
+        return run_async(
+            self._get_results, path, on_done, on_error, on_always, **kwargs
+        )
+
 
 class WebSocketClient(Client, WebSocketClientMixin):
     """A Python Client to stream requests from a Flow with a REST Gateway.

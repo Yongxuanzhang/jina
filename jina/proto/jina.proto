@@ -269,6 +269,7 @@ message RequestProto {
         ControlRequestProto control = 5; // a control request
         DeleteRequestProto delete = 9; // a delete request
         UpdateRequestProto update = 10; // an update request
+        ReloadRequestProto reload = 11; // an reload request
     }
 
     /**
@@ -310,6 +311,13 @@ message RequestProto {
         repeated DocumentProto docs = 1; // a list of Documents to query
 
         repeated DocumentProto groundtruths = 2; // the groundtruth document you want to evaluate it with
+    }
+
+   /**
+     * Represents a reload request
+     */
+    message ReloadRequestProto {
+        string path = 1; // path for the index
     }
 
     /**

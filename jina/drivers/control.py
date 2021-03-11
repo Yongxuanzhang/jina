@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 
 from google.protobuf.json_format import MessageToJson
 
-from . import BaseDriver
+from . import BaseDriver, BaseExecutableDriver
 from ..types.querylang.queryset.dunderkey import dunder_get
 from ..excepts import UnknownControlCommand, RuntimeTerminated, NoExplicitMessage
 from ..proto import jina_pb2

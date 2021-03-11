@@ -46,6 +46,8 @@ def _new_request_from_batch(_kwargs, batch, data_type, mode, queryset):
             _add_docs_groundtruths(req, batch, data_type, _kwargs)
         elif mode == RequestType.DELETE:
             _add_ids(req, batch)
+        elif mode == RequestType.RELOAD:
+            req.path = batch
         else:
             raise NotImplementedError(
                 f'generating request from {mode} is not yet supported'

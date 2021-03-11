@@ -41,7 +41,7 @@ class QueryBinaryPbIndexer(BaseKVIndexer):
         return
 
     def prepare(self, data, path):
-        self.next_state = QueryBinaryPbIndexer.DumpReadHandler(new_path)
+        self.next_state = QueryBinaryPbIndexer.DumpReadHandler(path)
 
     def switch(self, data, new_path):
         old_q_handler = self.query_handler
@@ -177,7 +177,7 @@ class QueryBinaryPbIndexer(BaseKVIndexer):
         """
         return self.ReadHandler(self.index_abspath, self.key_length)
 
-    def __init__(self, delete_on_dump: bool = False, time_wait_switch, *args, **kwargs):
+    def __init__(self, delete_on_dump: bool = False, time_wait_switch=5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._start = 0
         self._page_size = mmap.ALLOCATIONGRANULARITY

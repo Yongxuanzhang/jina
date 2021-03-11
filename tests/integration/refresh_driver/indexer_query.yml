@@ -6,7 +6,7 @@ components:
       metric: euclidean
     metas:
       name: vecidx  # a customized name
-  - jtype: BinaryPbIndexer
+  - jtype: QueryBinaryPbIndexer
     with:
       index_filename: chunk.gz
     metas:
@@ -23,7 +23,7 @@ on:
       with:
         fields:
           - embedding
-  ControlRequest:
+  ReloadRequest:
     - !ReloadControlReqDriver
       with:
         executor: compound_indexer

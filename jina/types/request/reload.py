@@ -2,7 +2,6 @@ from . import Request
 
 
 class ReloadRequest(Request):
-
     @property
     def path(self):
 

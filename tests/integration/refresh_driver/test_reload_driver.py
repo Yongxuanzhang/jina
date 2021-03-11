@@ -14,6 +14,7 @@ import os
 from jina import Flow, Document
 import numpy as np
 
+
 def test_reload():
     from jina.peapods.zmq import Zmqlet, send_ctrl_message
 

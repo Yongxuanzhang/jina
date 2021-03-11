@@ -536,7 +536,6 @@ class CRUDFlowMixin:
         """
         self._get_client(**kwargs).delete(ids, on_done, on_error, on_always, **kwargs)
 
-
     def reload(
         self,
         path: str,

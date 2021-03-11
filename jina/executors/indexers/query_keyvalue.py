@@ -177,7 +177,9 @@ class QueryBinaryPbIndexer(BaseKVIndexer):
         """
         return self.ReadHandler(self.index_abspath, self.key_length)
 
-    def __init__(self, delete_on_dump: bool = False, time_wait_switch=5, *args, **kwargs):
+    def __init__(
+        self, delete_on_dump: bool = False, time_wait_switch=5, *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self._start = 0
         self._page_size = mmap.ALLOCATIONGRANULARITY

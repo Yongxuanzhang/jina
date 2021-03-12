@@ -35,5 +35,6 @@ def test_reload(tmpdir):
         # Todo fix fails on compound __call
 
         print('done')
+        flow_query.block()
         # send_ctrl_message(ctrl_addr, 'RELOAD', timeout=100)
         # print(ctrl_addr)

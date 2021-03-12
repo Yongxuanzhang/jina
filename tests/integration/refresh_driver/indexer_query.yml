@@ -1,6 +1,6 @@
 !CompoundIndexer
 components:
-  - !NumpyIndexer
+  - !QueryNumpyIndexer
     with:
       index_filename: vec.gz
       metric: euclidean
@@ -16,19 +16,19 @@ metas:
   workspace: $HW_WORKDIR
 requests:
   on:
-#    SearchRequest:
-#      - !VectorSearchDriver
-#        with:
-#          executor: vecidx
-#      - !ExcludeQL
-#        with:
-#          fields:
-#            - embedding
-#      - !KVSearchDriver
-#        with:
-#          executor: kvidx
-#          is_update: True
-#          traversal_paths: ['m']
+    SearchRequest:
+      - !VectorSearchDriver
+        with:
+          executor: vecidx
+      - !ExcludeQL
+        with:
+          fields:
+            - embedding
+      - !KVSearchDriver
+        with:
+          executor: kvidx
+          is_update: True
+          traversal_paths: ['m']
     ReloadRequest:
       - !ReloadControlReqDriver
         with:

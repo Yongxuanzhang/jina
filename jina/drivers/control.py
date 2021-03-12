@@ -1,7 +1,10 @@
 __copyright__ = "Copyright (c) 2020 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
+import asyncio
+import threading
 import time
+from threading import Thread
 from typing import Optional, Tuple
 
 from google.protobuf.json_format import MessageToJson

@@ -7,22 +7,10 @@ import numpy as np
 
 from . import BaseKVIndexer
 from .keyvalue import BinaryPbIndexer
+from ..reload_helpers import DumpPersistor
 
 HEADER_NONE_ENTRY = (-1, -1, -1)
 TIME_WAIT_SWITCH = 5
-
-
-class DumpPersistor:
-    @staticmethod
-    def export_dump(path, data):
-        # split into vectors and kv
-        raise NotImplementedError
-
-    @staticmethod
-    def import_dump(path, content: Union['all', 'vectors', 'kv']):
-        # split into vectors and kv
-        # TODO maybe split into separate functions based on 'content'
-        raise NotImplementedError
 
 
 class QueryBinaryPbIndexer(BaseKVIndexer):

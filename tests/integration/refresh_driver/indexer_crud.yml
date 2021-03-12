@@ -1,15 +1,15 @@
-jtype: DumpableBinaryPbIndexer
+!DumpableBinaryPbIndexer
   with:
     index_filename: chunk.gz
   metas:
     workspace: $JINA_WORKSPACE_CRUD
     name: doc
 on:
-  ControlRequest:
-    - jtype: DumpControlReqDriver {} # this would trigger the dump
+  DumpRequest:
+    - !DumpControlReqDriver {} # this would trigger the dump . params = path (CRUD dbms will export to this path)
   [IndexRequest, UpdateRequest]:
-    - jtype: KVIndexDriver {} # we want to include everything (embedding, meta etc.)
-    - jtype: DumpControlReqDriver {}
+    - !KVIndexDriver {} # we want to include everything (embedding, meta etc.)
+    - !DumpControlReqDriver {}
   DeleteRequest:
-    - jtype: DeleteDriver {}
-    - jtype: DumpControlReqDriver {} # this would trigger the dump (provides path/URL) -- export format is universal
+    - !DeleteDriver {}
+    - !DumpControlReqDriver {} # this would trigger the dump (provides path/URL) -- export format is universal

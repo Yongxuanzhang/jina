@@ -1,6 +1,7 @@
 __copyright__ = "Copyright (c) 2020 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
+import traceback
 from collections import defaultdict
 from typing import Dict, List, Callable, Union, Optional
 
@@ -198,7 +199,7 @@ class CompoundExecutor(BaseExecutor):
             return any(super().__call__(*args, **kwargs))
 
     def __init__(
-        self, routes: Dict[str, Dict] = None, resolve_all: bool = True, *args, **kwargs
+            self, routes: Dict[str, Dict] = None, resolve_all: bool = True, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._components = None  # type: Optional[List[AnyExecutor]]
@@ -224,8 +225,8 @@ class CompoundExecutor(BaseExecutor):
         :return: only true if all components are updated or if the compound is updated
         """
         return (
-            self.components and any(c.is_updated for c in self.components)
-        ) or self._is_updated
+                       self.components and any(c.is_updated for c in self.components)
+               ) or self._is_updated
 
     @is_updated.setter
     def is_updated(self, val: bool) -> None:
@@ -298,7 +299,7 @@ class CompoundExecutor(BaseExecutor):
 
     @staticmethod
     def get_component_workspace_from_compound_workspace(
-        compound_workspace: str, compound_name: str, pea_id: int
+            compound_workspace: str, compound_name: str, pea_id: int
     ) -> str:
         """
         Get the name of workspace.
@@ -335,7 +336,7 @@ class CompoundExecutor(BaseExecutor):
                     self.add_route(f, kk, vv)
 
     def add_route(
-        self, fn_name: str, comp_name: str, comp_fn_name: str, is_stored: bool = False
+            self, fn_name: str, comp_name: str, comp_fn_name: str, is_stored: bool = False
     ) -> None:
         """Create a new function for this executor which refers to the component's function
 
@@ -351,9 +352,9 @@ class CompoundExecutor(BaseExecutor):
         """
         for c in self.components:
             if (
-                c.name == comp_name
-                and hasattr(c, comp_fn_name)
-                and callable(getattr(c, comp_fn_name))
+                    c.name == comp_name
+                    and hasattr(c, comp_fn_name)
+                    and callable(getattr(c, comp_fn_name))
             ):
                 setattr(self, fn_name, getattr(c, comp_fn_name))
                 if is_stored:
@@ -428,16 +429,22 @@ class CompoundExecutor(BaseExecutor):
     def __iter__(self):
         return self.components.__iter__()
 
-    # hack # add_route replaces this method with the a component method. Therefore, we need a different name
+    # TODO fix adding routes replacing self.method
+    # not used. required by attach. but is overridden in _set_routes by components' reload
+    def reload(self):
+        pass
+
+    # hack # _set_routes replaces this method with the a component method. Therefore, we need a different name
     def reload_compound(self, path):
-        print('######reload compound')
-        futures = []
-        for c in self.components:
-            # simulate time.sleep in the test
-            future = c.reload(path)
-            futures.append(future)
-        # wait for futures
-        self.next_version = True
+        print('###### reload compound')
+        try:
+            print(f'## {self.components=}')
+            for c in self.components:
+                print(f'{c.reload=}')
+                c.reload(path)
+            self.next_version = True
+        except:
+            print(traceback.format_exc())
 
     def __call__(self, *args, **kwargs):
         if self.next_version:

@@ -1,6 +1,7 @@
 __copyright__ = "Copyright (c) 2020 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
+import copy
 import gzip
 import io
 import os
@@ -535,7 +536,7 @@ class NumpyIndexer(BaseNumpyIndexer):
 
 
 class QueryNumpyIndexer(
-    BaseNumpyIndexer,
+    NumpyIndexer,
 ):
     """An exhaustive vector indexers implemented with numpy and scipy.
 
@@ -551,25 +552,12 @@ class QueryNumpyIndexer(
     :param compress_level: compression level to use
     """
 
-    batch_size = 512
-
-    def __init__(
-        self,
-        metric: str = 'cosine',
-        backend: str = 'numpy',
-        compress_level: int = 0,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, compress_level=compress_level, **kwargs)
-        self.metric = metric
-        self.backend = backend
-
     class DumpReadHandler:
         def __init__(self, path):
             self._path = path
 
-    async def reload(self, path):
+    def reload(self, path):
+        print(f'## reload of QueryNp')
         data = DumpPersistor.import_dump(path, 'vectors')
         # func to prepare new state
         if not self.preparing:
@@ -578,103 +566,22 @@ class QueryNumpyIndexer(
         return
 
     def prepare(self, data):
-        self.next_state = QueryNumpyIndexer.DumpReadHandler(data)
+        # TODO wrap in class or namedtuple
+        # self.next_state = self.get_file_from_workspace('tmp_next_file')
+        # self.next_size = len(data['ids'])
+        # self.next_valid_indices = np.repeat(True, self.next_size)
+        # self.next_dim = data['vectors'].shape[1]
+        # self.next_self_dtype = data['vectors'].dtype
+        self.tmp_vec_idxer = BaseNumpyIndexer(
+            metic=self.metric,
+            backend=self.backend,
+            compress_level=self.compress_level,
+            workspace=self._workspace
+        )
+        self.tmp_vec_idxer.add(data['ids'], data['vectors'])
+        self.tmp_vec_idxer.save()
 
-    def switch(self, data, new_path):
-        old_q_handler = self.query_handler
-        # del self.query_handler WAIT FOR PR
-        self.__dict__['CACHED_query_handler'] = self.next_state
-        old_q_handler.close()
-        self.next_state = None
-        self.preparing = False
-
-    @staticmethod
-    def _get_sorted_top_k(
-        dist: 'np.array', top_k: int
-    ) -> Tuple['np.ndarray', 'np.ndarray']:
-        """Find top-k smallest distances in ascending order.
-
-        Idea is to use partial sort to retrieve top-k smallest distances unsorted and then sort these
-        in ascending order. Equivalent to full sort but faster for n >> k. If k >= n revert to full sort.
-
-        :param dist: the distances
-        :param top_k: nr to limit
-        :return: tuple of indices, computed distances
-        """
-        if top_k >= dist.shape[1]:
-            idx = dist.argsort(axis=1)[:, :top_k]
-            dist = np.take_along_axis(dist, idx, axis=1)
-        else:
-            idx_ps = dist.argpartition(kth=top_k, axis=1)[:, :top_k]
-            dist = np.take_along_axis(dist, idx_ps, axis=1)
-            idx_fs = dist.argsort(axis=1)
-            idx = np.take_along_axis(idx_ps, idx_fs, axis=1)
-            dist = np.take_along_axis(dist, idx_fs, axis=1)
-
-        return idx, dist
-
-    def query(
-        self, vectors: 'np.ndarray', top_k: int, *args, **kwargs
-    ) -> Tuple['np.ndarray', 'np.ndarray']:
-        """Find the top-k vectors with smallest ``metric`` and return their ids in ascending order.
-
-        :return: a tuple of two ndarray.
-            The first is ids in shape B x K (`dtype=int`), the second is metric in shape B x K (`dtype=float`)
-
-        .. warning::
-            This operation is memory-consuming.
-
-            Distance (the smaller the better) is returned, not the score.
-
-        :param vectors: the vectors with which to search
-        :param *args: not used
-        :param **kwargs: not used
-        :param top_k: nr of results to return
-        :return: tuple of indices within matrix and distances
-        """
-        if self.size == 0:
-            return np.array([]), np.array([])
-        if self.metric not in {'cosine', 'euclidean'} or self.backend == 'scipy':
-            dist = self._cdist(vectors, self.query_handler)
-        elif self.metric == 'euclidean':
-            _query_vectors = _ext_A(vectors)
-            dist = self._euclidean(_query_vectors, self.query_handler)
-        elif self.metric == 'cosine':
-            _query_vectors = _ext_A(_norm(vectors))
-            dist = self._cosine(_query_vectors, self.query_handler)
-        else:
-            raise NotImplementedError(f'{self.metric} is not implemented')
-
-        idx, dist = self._get_sorted_top_k(dist, top_k)
-        indices = self._int2ext_id[self.valid_indices][idx]
-        return indices, dist
-
-    def build_advanced_index(self, vecs: 'np.ndarray') -> 'np.ndarray':
-        """
-        Build advanced index structure based on in-memory numpy ndarray, e.g. graph, tree, etc.
-
-        :param vecs: The raw numpy ndarray.
-        :return: Advanced index.
-        """
-        return vecs
-
-    @batching(merge_over_axis=1, slice_on=2)
-    def _euclidean(self, cached_A, raw_B):
-        data = _ext_B(raw_B)
-        return _euclidean(cached_A, data)
-
-    @batching(merge_over_axis=1, slice_on=2)
-    def _cosine(self, cached_A, raw_B):
-        data = _ext_B(_norm(raw_B))
-        return _cosine(cached_A, data)
-
-    @batching(merge_over_axis=1, slice_on=2)
-    def _cdist(self, *args, **kwargs):
-        try:
-            from scipy.spatial.distance import cdist
-
-            return cdist(*args, **kwargs, metric=self.metric)
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                f'your metric {self.metric} requires scipy, but scipy is not found'
-            )
+    def switch(self):
+        self.__dict__ = copy.deepcopy(self.tmp_vec_idxer.__dict__)
+        self.tmp_vec_idxer = None
+        self.save_abspath =

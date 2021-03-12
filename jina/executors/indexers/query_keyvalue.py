@@ -20,7 +20,8 @@ class QueryBinaryPbIndexer(BaseKVIndexer):
         # TODO
         pass
 
-    async def reload(self, path):
+    def reload(self, path):
+        print(f'## reload of QueryBinaryPb')
         data = DumpPersistor.import_dump(path, 'all')
         # func to prepare new state
         if not self.preparing:

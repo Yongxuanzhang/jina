@@ -152,7 +152,6 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
         'encode',
         'add',
         'query',
-        'reload',
         'craft',
         'segment',
         'score',
@@ -161,6 +160,7 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
         'query_by_key',
         'delete',
         'update',
+        'reload',
     ]
 
     def __init__(self, *args, **kwargs):
@@ -575,8 +575,8 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
         :param args: Additional arguments.
         :param kwargs: Additional key word arguments.
         """
-        for v in self._drivers.values():
-            for d in v:
+        for list_of_drivers in self._drivers.values():
+            for d in list_of_drivers:
                 d.attach(executor=self, runtime=runtime, *args, **kwargs)
 
         # replacing the logger to runtime's logger
@@ -595,7 +595,6 @@ class BaseExecutor(JAMLCompatible, metaclass=ExecutorType):
 
         # noqa: DAR102
         """
-        print('########', self._drivers)
         if req_type in self._drivers:
             for d in self._drivers[req_type]:
                 if d.attached:

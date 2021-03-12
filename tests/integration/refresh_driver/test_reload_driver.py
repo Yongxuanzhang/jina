@@ -15,11 +15,11 @@ from jina import Flow, Document
 import numpy as np
 
 
-def test_reload():
+def test_reload(tmpdir):
     from jina.peapods.zmq import Zmqlet, send_ctrl_message
 
-    docs1 = [Document(text='abc', embedding=np.ones([128])) for i in range(10)]
-    docs2 = [Document(text='xyz', embedding=np.zeros([128])) for j in range(10)]
+    # docs1 = [Document(text='abc', embedding=np.ones([12])) for _ in range(10)]
+    # docs2 = [Document(text='xyz', embedding=np.zeros([12])) for _ in range(10)]
 
     # os.environ["JINA_WORKSPACE_CRUD"] = 'first_workspace'
     # with Flow.load_config('flow_index.yml') as flow_index1:
@@ -29,7 +29,7 @@ def test_reload():
     # with Flow.load_config('flow_index.yml') as flow_index2:
     #     flow_index2.index(docs2)
 
-    os.environ["HW_WORKDIR"] = 'search_workspace'
+    os.environ["HW_WORKDIR"] = str(tmpdir)
     with Flow.load_config('flow_query.yml') as flow_query:
         flow_query.reload('our_path')
         # Todo fix fails on compound __call

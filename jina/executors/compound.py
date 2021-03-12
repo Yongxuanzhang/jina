@@ -443,4 +443,4 @@ class CompoundExecutor(BaseExecutor):
             for c in self.components:
                 c.switch()
             self.next_version = False
-        super.__call__(*args, **kwargs)
+        super().__call__(*args, **kwargs)

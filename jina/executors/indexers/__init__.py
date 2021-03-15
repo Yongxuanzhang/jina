@@ -118,6 +118,9 @@ class BaseIndexer(BaseExecutor):
             :attr:`query_handler` and :attr:`write_handler` are by default mutex
         """
         r = None
+        print(f'### {(not self.handler_mutex or not self.is_handler_loaded)=}')
+        print(f'### {self.handler_mutex=}')
+        print(f'### {self.is_handler_loaded=}')
         if not self.handler_mutex or not self.is_handler_loaded:
             r = self.get_query_handler()
             if r is None:

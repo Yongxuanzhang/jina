@@ -17,10 +17,7 @@ class DumpPersistor:
         # split into vectors and kv
         # TODO maybe split into separate functions based on 'content'
         if content == 'vector':
-            return [
-                ['id1', 'id2', 'id3'],
-                np.ones([3, 10])
-            ]
+            return [['id1', 'id2', 'id3'], np.ones([3, 7])]
         elif content == 'kv':
             return [
                 ['id1', 'id2', 'id3'],
@@ -28,15 +25,29 @@ class DumpPersistor:
                     {
                         'id': 'id1',
                         'text': 'our text 1',
-                        'embedding': np.ones([10, ])
-                    },{
+                        'embedding': np.ones(
+                            [
+                                7,
+                            ]
+                        ),
+                    },
+                    {
                         'id': 'id2',
                         'text': 'our text 2',
-                        'embedding': np.zeros([10, ])
-                    },{
+                        'embedding': np.zeros(
+                            [
+                                7,
+                            ]
+                        ),
+                    },
+                    {
                         'id': 'id3',
                         'text': 'our text 3',
-                        'embedding': np.zeros([10, ])
-                    }
-                ]
+                        'embedding': np.zeros(
+                            [
+                                7,
+                            ]
+                        ),
+                    },
+                ],
             ]

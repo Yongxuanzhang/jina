@@ -2,6 +2,7 @@ __copyright__ = "Copyright (c) 2020 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
 import copy
+import time
 from glob import glob
 import gzip
 import io
@@ -278,6 +279,8 @@ class BaseNumpyIndexer(BaseVectorIndexer):
 
         :return: a numpy ndarray of vectors
         """
+        print(f'### loading query handler....')
+        print(f'### {np.all(self.valid_indices)=}')
         if np.all(self.valid_indices):
             vecs = self._raw_ndarray
         else:
@@ -320,6 +323,7 @@ class BaseNumpyIndexer(BaseVectorIndexer):
             self.logger.success(f'memmap is enabled for {self.index_abspath}')
             # `==` is required. `is False` does not work in np
             deleted_keys = len(self.valid_indices[self.valid_indices == False])  # noqa
+            print(f'### memmapping...')
             return np.memmap(
                 self.index_abspath,
                 dtype=self.dtype,
@@ -498,6 +502,7 @@ class NumpyIndexer(BaseNumpyIndexer):
             dist = self._euclidean(_query_vectors, self.query_handler)
         elif self.metric == 'cosine':
             _query_vectors = _ext_A(_norm(vectors))
+            # set bp in jina.executors.indexers.BaseIndexer.query_handler
             dist = self._cosine(_query_vectors, self.query_handler)
         else:
             raise NotImplementedError(f'{self.metric} is not implemented')
@@ -558,10 +563,6 @@ class QueryNumpyIndexer(
         super().__init__(*args, **kwargs)
         self.preparing = False
 
-    class DumpReadHandler:
-        def __init__(self, path):
-            self._path = path
-
     def reload(self, path):
         print(f'## reload of QueryNp')
         data = DumpPersistor.import_dump(path, 'vector')
@@ -571,34 +572,49 @@ class QueryNumpyIndexer(
             self.prepare(data)
             self.preparing = False
 
-
     def prepare(self, data):
+        # simulate workload
+        time.sleep(3)
         # TODO wrap in class or namedtuple
-        # self.next_state = self.get_file_from_workspace('tmp_next_file')
-        # self.next_size = len(data['ids'])
-        # self.next_valid_indices = np.repeat(True, self.next_size)
-        # self.next_dim = data['vectors'].shape[1]
-        # self.next_self_dtype = data['vectors'].dtype
-        new_workspace = os.path.join(self._workspace, '../new_workspace_for_preparation')
+        new_workspace = os.path.join(
+            self._workspace, '../new_workspace_for_preparation'
+        )
         os.makedirs(new_workspace)
         self.tmp_vec_idxer = NumpyIndexer(
-            metic=self.metric,
+            metric=self.metric,
             backend=self.backend,
             compress_level=self.compress_level,
-            workspace=new_workspace
+            index_filename=self.index_filename,
+            # TODO any way to know which metas were passed?
+            metas={
+                'workspace': new_workspace,
+                'pea_id': self.pea_id,
+                'read_only': self.read_only,
+                'max_snapshot': self.max_snapshot,
+            },
         )
         self.tmp_vec_idxer.add(*data)
-        self.tmp_vec_idxer.save()
+        self.tmp_vec_idxer.write_handler.flush()
+        self.tmp_vec_idxer.write_handler.close()
+        self.tmp_vec_idxer.handler_mutex = False
+        self.tmp_vec_idxer.is_handler_loaded = False
+        del self.tmp_vec_idxer.query_handler
+        del self.tmp_vec_idxer._raw_ndarray
+        del self.tmp_vec_idxer.write_handler
+        assert self.tmp_vec_idxer.query(data[1], top_k=1) is not None
+        assert self.tmp_vec_idxer.query_handler is not None
 
     def switch(self):
         self.close()
-        shutil.rmtree(self._workspace)
-        new_workspace = os.path.join(self._workspace, '../new_workspace_for_preparation')
-        shutil.copytree(
-            new_workspace,
-            self._workspace
+        old_workspace = self._workspace
+        os.system(f'rm -rf {old_workspace}')
+        new_workspace = os.path.abspath(
+            os.path.join(old_workspace, '../new_workspace_for_preparation')
         )
+        shutil.copytree(new_workspace, old_workspace)
         self.__dict__ = self.tmp_vec_idxer.__dict__
-        # overwrite files
         shutil.rmtree(new_workspace)
-
+        self.workspace = old_workspace
+        self.query_handler.filename = self.index_abspath
+        self.tmp_vec_idxer = None
+        assert self.query_handler is not None

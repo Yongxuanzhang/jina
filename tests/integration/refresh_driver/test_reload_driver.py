@@ -10,9 +10,12 @@ first is loaded when we start
 -- validate (once we see new only see new)
 """
 import os
+import time
 
 from jina import Flow, Document
 import numpy as np
+
+from tests import get_documents
 
 
 def test_reload(tmpdir):
@@ -32,14 +35,36 @@ def test_reload(tmpdir):
     # def validate_results(resp):
     #     print('## resp', resp)
 
+    def validate_results_empty(resp):
+        print(f'### {resp}')
+        for d in resp.docs:
+            assert len(d.matches) == 0
+
+    def validate_results_nonempty(resp):
+        print(f'### {resp}')
+        for d in resp.docs:
+            assert len(d.matches) > 0
+
+    def error_callback(resp):
+        print(f'## error: {resp}')
+
+    docs = list(
+        get_documents(
+            chunks=0, same_content=False, nr=1, index_start=0, same_tag_content=False
+        )
+    )
+
     os.environ["HW_WORKDIR"] = str(tmpdir)
     with Flow.load_config('flow_query.yml') as flow_query:
+        print(f'### first search')
+        flow_query.search(docs, on_done=validate_results_empty)
+        print(f'### reload')
         flow_query.reload('our_path')
-        # flow_query.search('id1', on_done=validate_results)
-
-        # Todo fix fails on compound __call
-
-        print('done')
+        print(f'### second search (empty)')
+        flow_query.search(docs, on_done=validate_results_empty)
+        time.sleep(5)
+        print(f'### third search (not empty)')
+        flow_query.search(docs, on_done=validate_results_nonempty)
 
         # send_ctrl_message(ctrl_addr, 'RELOAD', timeout=100)
         # print(ctrl_addr)

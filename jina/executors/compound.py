@@ -438,12 +438,14 @@ class CompoundExecutor(BaseExecutor):
     def reload_compound(self, path):
         print('###### reload compound')
         try:
-            print(f'## {self.components=}')
+            # print(f'## {self.components=}')
+            # TODO futures to run both reloads in parallel and join them at the end of the for loop
             for c in self.components:
-                print(f'{c.reload=}')
+                # print(f'{c.reload=}')
                 c.reload(path)
             self.next_version = True
         except:
+            # just for debugging
             print(traceback.format_exc())
 
     def __call__(self, *args, **kwargs):

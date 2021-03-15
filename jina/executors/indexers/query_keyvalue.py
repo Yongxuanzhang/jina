@@ -7,6 +7,7 @@ import numpy as np
 
 from . import BaseKVIndexer
 from .keyvalue import BinaryPbIndexer
+from .vector import BaseNumpyIndexer
 from ..reload_helpers import DumpPersistor
 
 HEADER_NONE_ENTRY = (-1, -1, -1)
@@ -15,6 +16,8 @@ TIME_WAIT_SWITCH = 5
 
 class QueryBinaryPbIndexer(BaseKVIndexer):
     """Simple Key-value indexer."""
+    def __init(self):
+        self.preparing = False
 
     class DumpReadHandler(BinaryPbIndexer.ReadHandler):
         # TODO
@@ -26,11 +29,18 @@ class QueryBinaryPbIndexer(BaseKVIndexer):
         # func to prepare new state
         if not self.preparing:
             self.preparing = True
-            self.prepare(data, path)
+            self.prepare(data)
+            self.preparing = False
         return
 
-    def prepare(self, data, path):
-        self.next_state = QueryBinaryPbIndexer.DumpReadHandler(path)
+    def prepare(self, data):
+        self.tmp_vec_idxer = BinaryPbIndexer(
+            delete_on_dump=self.delete_on_dump,
+            workspace=os.path.join(self._workspace, 'new_workspace_for_preparation')
+        )
+        self.tmp_vec_idxer.add(*data)
+        self.tmp_vec_idxer.save(os.path.join(self._workspace, 'new_workspace_for_preparation'))
+
 
     def switch(self, data, new_path):
         old_q_handler = self.query_handler

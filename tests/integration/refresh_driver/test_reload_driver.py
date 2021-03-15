@@ -29,9 +29,14 @@ def test_reload(tmpdir):
     # with Flow.load_config('flow_index.yml') as flow_index2:
     #     flow_index2.index(docs2)
 
+    # def validate_results(resp):
+    #     print('## resp', resp)
+
     os.environ["HW_WORKDIR"] = str(tmpdir)
     with Flow.load_config('flow_query.yml') as flow_query:
         flow_query.reload('our_path')
+        # flow_query.search('id1', on_done=validate_results)
+
         # Todo fix fails on compound __call
 
         print('done')

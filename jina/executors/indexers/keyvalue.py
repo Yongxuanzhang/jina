@@ -147,6 +147,7 @@ class BinaryPbIndexer(BaseKVIndexer):
         return self.ReadHandler(self.index_abspath, self.key_length)
 
     def __init__(self, delete_on_dump: bool = False, *args, **kwargs):
+        print('## init kw')
         super().__init__(*args, **kwargs)
         self._start = 0
         self._page_size = mmap.ALLOCATIONGRANULARITY

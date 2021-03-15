@@ -2,9 +2,11 @@ __copyright__ = "Copyright (c) 2020 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
 import copy
+from glob import glob
 import gzip
 import io
 import os
+import shutil
 from functools import lru_cache
 from os import path
 from typing import Optional, Iterable, Tuple, Dict
@@ -552,18 +554,23 @@ class QueryNumpyIndexer(
     :param compress_level: compression level to use
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.preparing = False
+
     class DumpReadHandler:
         def __init__(self, path):
             self._path = path
 
     def reload(self, path):
         print(f'## reload of QueryNp')
-        data = DumpPersistor.import_dump(path, 'vectors')
+        data = DumpPersistor.import_dump(path, 'vector')
         # func to prepare new state
         if not self.preparing:
             self.preparing = True
             self.prepare(data)
-        return
+            self.preparing = False
+
 
     def prepare(self, data):
         # TODO wrap in class or namedtuple
@@ -572,16 +579,26 @@ class QueryNumpyIndexer(
         # self.next_valid_indices = np.repeat(True, self.next_size)
         # self.next_dim = data['vectors'].shape[1]
         # self.next_self_dtype = data['vectors'].dtype
-        self.tmp_vec_idxer = BaseNumpyIndexer(
+        new_workspace = os.path.join(self._workspace, '../new_workspace_for_preparation')
+        os.makedirs(new_workspace)
+        self.tmp_vec_idxer = NumpyIndexer(
             metic=self.metric,
             backend=self.backend,
             compress_level=self.compress_level,
-            workspace=self._workspace
+            workspace=new_workspace
         )
-        self.tmp_vec_idxer.add(data['ids'], data['vectors'])
+        self.tmp_vec_idxer.add(*data)
         self.tmp_vec_idxer.save()
 
     def switch(self):
-        self.__dict__ = copy.deepcopy(self.tmp_vec_idxer.__dict__)
-        self.tmp_vec_idxer = None
-        self.save_abspath =
+        self.close()
+        shutil.rmtree(self._workspace)
+        new_workspace = os.path.join(self._workspace, '../new_workspace_for_preparation')
+        shutil.copytree(
+            new_workspace,
+            self._workspace
+        )
+        self.__dict__ = self.tmp_vec_idxer.__dict__
+        # overwrite files
+        shutil.rmtree(new_workspace)
+

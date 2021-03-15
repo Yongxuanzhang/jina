@@ -6,11 +6,11 @@ components:
       metric: euclidean
     metas:
       name: vecidx  # a customized name
-  - !QueryBinaryPbIndexer
-    with:
-      index_filename: chunk.gz
-    metas:
-      name: kvidx
+#  - !QueryBinaryPbIndexer
+#    with:
+#      index_filename: chunk.gz
+#    metas:
+#      name: kvidx
 metas:
   name: compound_indexer
   workspace: $HW_WORKDIR
@@ -24,11 +24,11 @@ requests:
         with:
           fields:
             - embedding
-      - !KVSearchDriver
-        with:
-          executor: kvidx
-          is_update: True
-          traversal_paths: ['m']
+#      - !KVSearchDriver
+#        with:
+#          executor: kvidx
+#          is_update: True
+#          traversal_paths: ['m']
     ReloadRequest:
       - !ReloadControlReqDriver
         with:

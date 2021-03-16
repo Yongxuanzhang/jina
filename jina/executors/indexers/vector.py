@@ -559,62 +559,30 @@ class QueryNumpyIndexer(
     :param compress_level: compression level to use
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, uri_path=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.uri_path = uri_path
         self.preparing = False
+        if self.uri_path:
+            self.import_uri_path()
+        else:
+            self.logger.warning(
+                f'The indexer does not have any data. Make sure to use ReloadRequest to tell it how to import data...'
+            )
 
-    def reload(self, path):
-        print(f'## reload of QueryNp')
-        data = DumpPersistor.import_dump(path, 'vector')
-        # func to prepare new state
-        if not self.preparing:
-            self.preparing = True
-            self.prepare(data)
-            self.preparing = False
+    def import_uri_path(self):
+        """This can be a universal dump format(to be defined)
+        Or optimized to the Indexer format.
 
-    def prepare(self, data):
-        # simulate workload
-        time.sleep(3)
-        # TODO wrap in class or namedtuple
-        new_workspace = os.path.join(
-            self._workspace, '../new_workspace_for_preparation'
-        )
-        os.makedirs(new_workspace)
-        self.tmp_vec_idxer = NumpyIndexer(
-            metric=self.metric,
-            backend=self.backend,
-            compress_level=self.compress_level,
-            index_filename=self.index_filename,
-            # TODO any way to know which metas were passed?
-            metas={
-                'workspace': new_workspace,
-                'pea_id': self.pea_id,
-                'read_only': self.read_only,
-                'max_snapshot': self.max_snapshot,
-            },
-        )
-        self.tmp_vec_idxer.add(*data)
-        self.tmp_vec_idxer.write_handler.flush()
-        self.tmp_vec_idxer.write_handler.close()
-        self.tmp_vec_idxer.handler_mutex = False
-        self.tmp_vec_idxer.is_handler_loaded = False
-        del self.tmp_vec_idxer.query_handler
-        del self.tmp_vec_idxer._raw_ndarray
-        del self.tmp_vec_idxer.write_handler
-        assert self.tmp_vec_idxer.query(data[1], top_k=1) is not None
-        assert self.tmp_vec_idxer.query_handler is not None
+        We first copy to a temporary folder (within workspace?)
 
-    def switch(self):
-        self.close()
-        old_workspace = self._workspace
-        os.system(f'rm -rf {old_workspace}')
-        new_workspace = os.path.abspath(
-            os.path.join(old_workspace, '../new_workspace_for_preparation')
-        )
-        shutil.copytree(new_workspace, old_workspace)
-        self.__dict__ = self.tmp_vec_idxer.__dict__
-        shutil.rmtree(new_workspace)
-        self.workspace = old_workspace
-        self.query_handler.filename = self.index_abspath
-        self.tmp_vec_idxer = None
-        assert self.query_handler is not None
+        The dump is created by a DumpRequest to the CUD Indexer (SQLIndexer)
+        with params:
+            formats: universal, Numpy, BinaryPb etc.
+            shards: X
+
+        The shards are configured per dump
+        """
+        print(f'Importim from dump at {self.uri_path}')
+        data = DumpPersistor.import_dump(self.uri_path, 'vector')
+        self.add(*data)

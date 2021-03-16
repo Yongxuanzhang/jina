@@ -29,7 +29,3 @@ requests:
 #          executor: kvidx
 #          is_update: True
 #          traversal_paths: ['m']
-    ReloadRequest:
-      - !ReloadControlReqDriver
-        with:
-          executor: compound_indexer

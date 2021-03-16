@@ -11,6 +11,7 @@ first is loaded when we start
 """
 import os
 import time
+from threading import Thread
 
 from jina import Flow, Document
 import numpy as np
@@ -54,17 +55,42 @@ def test_reload(tmpdir):
         )
     )
 
+    def dump_reload(flow_query, flow_index, path):
+        flow_index.dump(path)
+        flow_query.reload(path)
+        time.sleep(10)
+
+    new_docs = list(
+        get_documents(
+            chunks=0, same_content=False, nr=1, index_start=1, same_tag_content=False
+        )
+    )
+
+    DUMP_PATH = "some_path"
     os.environ["HW_WORKDIR"] = str(tmpdir)
     with Flow.load_config('flow_query.yml') as flow_query:
-        print(f'### first search')
-        flow_query.search(docs, on_done=validate_results_empty)
-        print(f'### reload')
-        flow_query.reload('our_path')
-        print(f'### second search (empty)')
-        flow_query.search(docs, on_done=validate_results_empty)
-        time.sleep(5)
-        print(f'### third search (not empty)')
-        flow_query.search(docs, on_done=validate_results_nonempty)
+        with Flow.load_config('flow_index.yml') as flow_index:
+            # TODO add DumpRequest and .dump method
+            print(f'### first search')
+            flow_query.search(docs, on_done=validate_results_empty)
+            flow_index.index(new_docs)
+            Thread(
+                target=dump_reload,
+                args=(
+                    flow_query,
+                    flow_index,
+                    DUMP_PATH,
+                ),
+            ).start()
+            print(f'### second search (empty)')
+            flow_query.search(docs, on_done=validate_results_empty)
+            for _ in range(100):
+                flow_index.index(new_docs)
+                flow_query.search(docs, on_done=validate_results_empty)
+            # MAKE SURE THE THREAD IS DONE
+            time.sleep(5)
+            print(f'### third search (not empty)')
+            flow_query.search(docs, on_done=validate_results_nonempty)
 
-        # send_ctrl_message(ctrl_addr, 'RELOAD', timeout=100)
-        # print(ctrl_addr)
+            # send_ctrl_message(ctrl_addr, 'RELOAD', timeout=100)
+            # print(ctrl_addr)

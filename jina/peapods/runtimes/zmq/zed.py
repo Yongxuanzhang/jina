@@ -1,5 +1,6 @@
 import time
 from collections import defaultdict
+from threading import Thread
 from typing import Dict, List
 
 import zmq
@@ -21,10 +22,15 @@ from ....executors import BaseExecutor
 from ....helper import random_identity
 from ....logging.profile import used_memory, TimeDict
 from ....proto import jina_pb2
+from ....types.request.reload import ReloadRequest
 
 
 class ZEDRuntime(ZMQRuntime):
     """Runtime procedure leveraging :class:`ZmqStreamlet` for Executor, Driver."""
+
+    def __init__(self, *args_, **kwargs):
+        super().__init__(*args_, **kwargs)
+        self._next_executor_ready = False
 
     def run_forever(self):
         """Start the `ZmqStreamlet`."""
@@ -167,10 +173,34 @@ class ZEDRuntime(ZMQRuntime):
             msg.envelope.status.code != jina_pb2.StatusProto.ERROR
             or self.args.on_error_strategy < OnErrorStrategy.SKIP_HANDLE
         ):
-            self._executor(self.request_type)
+            if self.request_type == ReloadRequest:
+                self._next_executor_prepare_thread = Thread(
+                    target=getattr(self, '_next_executor_prepare'), args=(self.request,)
+                )
+                self._next_executor_prepare_thread.start()
+                return self
+            else:
+                if self._next_executor_ready:
+                    self._executor = self._next_executor
+                    self._executor.attach(runtime=self)
+                    self._next_executor_ready = False
+                    self._next_executor = None
+                self._executor(self.request_type)
         else:
             raise ChainedPodException
         return self
+
+    def _next_executor_prepare(self, req):
+        # TODO this will use the same workspace and thus overwrite data
+        # Problem 1. hOw do we pass workspace to this?
+        # Problem 2. How do we tell it from where to import data?
+        self._next_executor = BaseExecutor.load_config(
+            self.args.uses,
+            pea_id=self.args.pea_id,
+            read_only=self.args.read_only,
+            context={'workspace': 'some_new_path_with_timestamp', 'uri_path': req.path},
+        )
+        self._next_executor_ready = True
 
     def _callback(self, msg: 'Message'):
         self.is_post_hook_done = False  #: if the post_hook is called
